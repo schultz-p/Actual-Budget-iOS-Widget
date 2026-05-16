@@ -61,6 +61,13 @@ function assertDataArray(response, label) {
   }
 }
 
+// === 🔧 Helper: Create an authenticated API request
+function makeApiRequest(path) {
+  const r = new Request(`${apiBaseUrl}${path}`)
+  r.headers = { "x-api-key": apiKey, "accept": "application/json" }
+  return r
+}
+
 // === 📆 Helper: ISO date N days ago
 function isoDateNDaysAgo(n) {
   const d = new Date()
@@ -93,11 +100,7 @@ if (Keychain.contains("actual-cache")) {
   }
 }
 
-const req = new Request(`${apiBaseUrl}/v1/budgets/${syncId}/months/${isoMonth}/categorygroups`)
-req.headers = {
-  "x-api-key": apiKey,
-  "accept": "application/json"
-}
+const req = makeApiRequest(`/v1/budgets/${syncId}/months/${isoMonth}/categorygroups`)
 
 try {
   const raw = await req.loadJSON()
@@ -120,8 +123,7 @@ try {
 }
 
 // === 🧾 Fetch uncategorised transactions
-const accountsReq = new Request(`${apiBaseUrl}/v1/budgets/${syncId}/accounts`)
-accountsReq.headers = { "x-api-key": apiKey, "accept": "application/json" }
+const accountsReq = makeApiRequest(`/v1/budgets/${syncId}/accounts`)
 
 let uncategorised = []
 let accountStats = []
@@ -143,9 +145,7 @@ try {
       failedNow = true
       continue
     }
-    const txUrl = `${apiBaseUrl}/v1/budgets/${syncId}/accounts/${acc.id}/transactions?since_date=${sinceDate}`
-    const txReq = new Request(txUrl)
-    txReq.headers = { "x-api-key": apiKey, "accept": "application/json" }
+    const txReq = makeApiRequest(`/v1/budgets/${syncId}/accounts/${acc.id}/transactions?since_date=${sinceDate}`)
 
     try {
       const txData = await txReq.loadJSON()
