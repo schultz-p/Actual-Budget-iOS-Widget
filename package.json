@@ -1,0 +1,10 @@
+{
+  "name": "actual-budget-ios-widget",
+  "private": true,
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}
