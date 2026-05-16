@@ -15,6 +15,9 @@ const targetGroupName = "Category Group Title"
 // 💸 Currency formatting
 const currencyPrefix = "$"  // Symbol shown before the number
 const currencySuffix = ""   // Text shown after the number
+// Actual stores amounts as integers in the minor unit (cents for USD, pence for GBP, etc.)
+// Set to 1 for zero-decimal currencies like JPY or KWD
+const currencyMinorUnitDivisor = 100
 
 // === 🎨 APPEARANCE SETTINGS ===
 
@@ -45,21 +48,39 @@ const uncategorisedFontSize = 12            // Font size for uncategorised summa
 
 // === ⚙️ BEHAVIOUR SETTINGS ===
 
-const enableDebugLogging = true             // Log fetch/debug info to console
+const enableDebugLogging = false            // Log fetch/debug info to console
+const refreshIntervalMinutes = 360          // How often the widget refreshes on success
+const retryIntervalMinutes = 30             // How often to retry after any failure
 
 // === 🔧 Helper: Format Amount
 function formatAmount(amount) {
   const abs = Math.abs(amount)
-  const formatted = `${currencyPrefix}${(abs / 100).toFixed(2)}${currencySuffix}`
+  const formatted = `${currencyPrefix}${(abs / currencyMinorUnitDivisor).toFixed(2)}${currencySuffix}`
   return amount < 0 ? `-${formatted}` : formatted
 }
 
-// === 📆 Helper: ISO date N days ago
-function isoDateNDaysAgo(n) {
-  const d = new Date()
+// === 🔧 Helper: Validate API response has a data array
+function assertDataArray(response, label) {
+  if (!response || !Array.isArray(response.data)) {
+    throw new Error(`Malformed response from ${label}: expected { data: [...] }`)
+  }
+}
+
+// === 🔧 Helper: Create an authenticated API request
+function makeApiRequest(path) {
+  const r = new Request(`${apiBaseUrl}${path}`)
+  r.headers = { "x-api-key": apiKey, "accept": "application/json" }
+  return r
+}
+
+// === 📆 Helper: ISO date N days before a given date
+function isoDateNDaysAgo(n, from) {
+  const d = new Date(from)
   d.setDate(d.getDate() - n)
   return d.toISOString().slice(0, 10)
 }
+
+async function main() {
 
 // === 📅 Format timestamps
 const now = new Date()
@@ -76,7 +97,9 @@ timeFormatter.useShortTimeStyle()
 // === 🧾 Try loading cache
 let w = new ListWidget()
 let cache = null
-let data, lastSuccessTime, failedNow = false
+let data, lastSuccessTime
+let budgetFromCache = false
+let txFailed = false
 
 if (Keychain.contains("actual-cache")) {
   try {
@@ -86,14 +109,12 @@ if (Keychain.contains("actual-cache")) {
   }
 }
 
-const req = new Request(`${apiBaseUrl}/v1/budgets/${syncId}/months/${isoMonth}/categorygroups`)
-req.headers = {
-  "x-api-key": apiKey,
-  "accept": "application/json"
-}
+const req = makeApiRequest(`/v1/budgets/${syncId}/months/${isoMonth}/categorygroups`)
 
 try {
-  data = await req.loadJSON()
+  const raw = await req.loadJSON()
+  assertDataArray(raw, "category groups")
+  data = raw
   Keychain.set("actual-cache", JSON.stringify({ timestamp: now.toISOString(), data }))
   lastSuccessTime = now
 } catch (e) {
@@ -101,7 +122,7 @@ try {
   if (cache) {
     data = cache.data
     lastSuccessTime = new Date(cache.timestamp || Date.now())
-    failedNow = true
+    budgetFromCache = true
   } else {
     w.addText("❌ No data & no cache available.")
     Script.setWidget(w)
@@ -111,60 +132,65 @@ try {
 }
 
 // === 🧾 Fetch uncategorised transactions
-const accountsReq = new Request(`${apiBaseUrl}/v1/budgets/${syncId}/accounts`)
-accountsReq.headers = { "x-api-key": apiKey, "accept": "application/json" }
+const accountsReq = makeApiRequest(`/v1/budgets/${syncId}/accounts`)
 
 let uncategorised = []
-let accountStats = []
 
-let accountData
 try {
-  accountData = await accountsReq.loadJSON()
+  const accountData = await accountsReq.loadJSON()
+  assertDataArray(accountData, "accounts")
   const validAccounts = accountData.data.filter(a => !a.closed && !a.offbudget)
   if (enableDebugLogging) console.log(`✅ Found ${validAccounts.length} accounts`)
 
-  const sinceDate = isoDateNDaysAgo(lookbackDays)
+  const sinceDate = isoDateNDaysAgo(lookbackDays, now)
 
-  for (let acc of validAccounts) {
-    const txUrl = `${apiBaseUrl}/v1/budgets/${syncId}/accounts/${acc.id}/transactions?since_date=${sinceDate}`
-    const txReq = new Request(txUrl)
-    txReq.headers = { "x-api-key": apiKey, "accept": "application/json" }
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
+  const results = await Promise.all(validAccounts.map(async acc => {
+    if (!UUID_RE.test(acc.id)) {
+      console.warn(`⚠️ Skipping account '${acc.name}': unexpected id format '${acc.id}'`)
+      return { ok: false }
+    }
     try {
-      const txData = await txReq.loadJSON()
+      const txData = await makeApiRequest(
+        `/v1/budgets/${syncId}/accounts/${acc.id}/transactions?since_date=${sinceDate}`
+      ).loadJSON()
+      assertDataArray(txData, `transactions for '${acc.name}'`)
       const uncats = txData.data.filter(tx =>
         !tx.category &&
         !tx.transfer_id &&
         !tx.starting_balance_flag
       )
-
-      uncategorised.push(...uncats)
-
       if (enableDebugLogging) {
         console.log(`📒 ${acc.name}: ${uncats.length} uncategorised / ${txData.data.length} total`)
         for (const tx of uncats) {
           console.log(`  - ${formatAmount(tx.amount)} on ${tx.date}`)
         }
       }
-
-      accountStats.push({ name: acc.name, total: txData.data.length, uncategorised: uncats.length, error: false })
-
+      return { ok: true, uncats }
     } catch (err) {
       console.warn(`❌ Failed to fetch transactions for '${acc.name}' (${acc.id})`)
       console.warn(err.message || err)
-      accountStats.push({ name: acc.name, total: 0, uncategorised: 0, error: true })
-      failedNow = true
+      return { ok: false }
+    }
+  }))
+
+  for (const result of results) {
+    if (result.ok) {
+      uncategorised.push(...result.uncats)
+    } else {
+      txFailed = true
     }
   }
 
 } catch (err) {
   console.error("❌ Failed to fetch account list")
   console.error(err.message || err)
-  failedNow = true
+  txFailed = true
 }
 
 if (enableDebugLogging) {
-  console.log(`📦 Uncategorised transactions pulled from ${failedNow ? "cache" : "API"} | Count: ${uncategorised.length}`)
+  console.log(`📦 Uncategorised count: ${uncategorised.length}${txFailed ? " (partial — some accounts failed)" : ""}`)
 }
 
 // === 📂 Display category group
@@ -202,7 +228,7 @@ if (!targetGroup) {
 }
 
 // === 📦 Insert uncategorised transaction box (if applicable)
-if (uncategorised.length >= 1) {
+if (uncategorised.length > 0) {
   const totalAmount = uncategorised.reduce((sum, tx) => sum + tx.amount, 0)
   const totalFormatted = formatAmount(totalAmount)
 
@@ -210,12 +236,8 @@ if (uncategorised.length >= 1) {
   uncatBox.layoutVertically()
   uncatBox.backgroundColor = uncategorisedBgColor
   uncatBox.cornerRadius = 8
-  uncatBox.setPadding(
-    uncategorisedBoxPadding,
-    uncategorisedBoxPadding,
-    uncategorisedBoxPadding,
-    uncategorisedBoxPadding
-  )
+  const p = uncategorisedBoxPadding
+  uncatBox.setPadding(p, p, p, p)
 
   const daysNote = `past ${lookbackDays} days`
   const uncatText = uncatBox.addText(`${uncategorised.length} uncategorised: ${totalFormatted} • ${daysNote}`)
@@ -227,22 +249,19 @@ if (uncategorised.length >= 1) {
 
 // === 🕓 Footer
 w.addSpacer(4)
-if (failedNow) {
-  const failText = w.addText(`❌ Failed: ${timeFormatter.string(now)}`)
-  failText.font = Font.systemFont(footerTextSize)
-  failText.textColor = footerTextColor
 
-  const lastText = w.addText(`🕓 Last retrieved: ${timeFormatter.string(lastSuccessTime)}`)
-  lastText.font = Font.systemFont(footerTextSize)
-  lastText.textColor = footerTextColor
-} else {
-  const refreshText = w.addText(`Last retrieved: ${timeFormatter.string(lastSuccessTime)}`)
-  refreshText.font = Font.systemFont(footerTextSize)
-  refreshText.textColor = footerTextColor
+function addFooterLine(text) {
+  const t = w.addText(text)
+  t.font = Font.systemFont(footerTextSize)
+  t.textColor = footerTextColor
 }
 
+if (budgetFromCache) addFooterLine(`⚠️ Balances from cache • Last retrieved: ${timeFormatter.string(lastSuccessTime)}`)
+if (txFailed) addFooterLine(`⚠️ Uncategorised data unavailable`)
+if (!budgetFromCache && !txFailed) addFooterLine(`Last retrieved: ${timeFormatter.string(lastSuccessTime)}`)
+
 // === 🔁 Auto-refresh
-const refreshInterval = failedNow ? 30 : 360 // in minutes
+const refreshInterval = (budgetFromCache || txFailed) ? retryIntervalMinutes : refreshIntervalMinutes
 const nextRefresh = new Date(Date.now() + refreshInterval * 60 * 1000)
 w.refreshAfterDate = nextRefresh
 
@@ -251,3 +270,7 @@ w.setPadding(widgetPadding, widgetPadding, widgetPadding, widgetPadding)
 w.presentLarge()
 Script.setWidget(w)
 Script.complete()
+
+} // end main()
+
+await main()
