@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  validate:
+    name: Validate JavaScript
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Check syntax
+        run: node --check actual-budget-widget.js
+
+      - name: Lint with ESLint
+        run: |
+          npm install --no-save eslint
+          npx eslint actual-budget-widget.js \
+            --rule '{"no-undef": "off", "no-unused-vars": "warn", "no-console": "off"}' \
+            --env es2020
