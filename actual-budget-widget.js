@@ -126,7 +126,6 @@ try {
 const accountsReq = makeApiRequest(`/v1/budgets/${syncId}/accounts`)
 
 let uncategorised = []
-let accountStats = []
 
 let accountData
 try {
