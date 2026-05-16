@@ -90,7 +90,9 @@ timeFormatter.useShortTimeStyle()
 // === 🧾 Try loading cache
 let w = new ListWidget()
 let cache = null
-let data, lastSuccessTime, failedNow = false
+let data, lastSuccessTime
+let budgetFromCache = false
+let txFailed = false
 
 if (Keychain.contains("actual-cache")) {
   try {
@@ -113,7 +115,7 @@ try {
   if (cache) {
     data = cache.data
     lastSuccessTime = new Date(cache.timestamp || Date.now())
-    failedNow = true
+    budgetFromCache = true
   } else {
     w.addText("❌ No data & no cache available.")
     Script.setWidget(w)
@@ -171,18 +173,18 @@ try {
     if (result.ok) {
       uncategorised.push(...result.uncats)
     } else {
-      failedNow = true
+      txFailed = true
     }
   }
 
 } catch (err) {
   console.error("❌ Failed to fetch account list")
   console.error(err.message || err)
-  failedNow = true
+  txFailed = true
 }
 
 if (enableDebugLogging) {
-  console.log(`📦 Uncategorised transactions pulled from ${failedNow ? "cache" : "API"} | Count: ${uncategorised.length}`)
+  console.log(`📦 Uncategorised count: ${uncategorised.length}${txFailed ? " (partial — some accounts failed)" : ""}`)
 }
 
 // === 📂 Display category group
@@ -245,22 +247,19 @@ if (uncategorised.length >= 1) {
 
 // === 🕓 Footer
 w.addSpacer(4)
-if (failedNow) {
-  const failText = w.addText(`❌ Failed: ${timeFormatter.string(now)}`)
-  failText.font = Font.systemFont(footerTextSize)
-  failText.textColor = footerTextColor
 
-  const lastText = w.addText(`🕓 Last retrieved: ${timeFormatter.string(lastSuccessTime)}`)
-  lastText.font = Font.systemFont(footerTextSize)
-  lastText.textColor = footerTextColor
-} else {
-  const refreshText = w.addText(`Last retrieved: ${timeFormatter.string(lastSuccessTime)}`)
-  refreshText.font = Font.systemFont(footerTextSize)
-  refreshText.textColor = footerTextColor
+function addFooterLine(text) {
+  const t = w.addText(text)
+  t.font = Font.systemFont(footerTextSize)
+  t.textColor = footerTextColor
 }
 
+if (budgetFromCache) addFooterLine(`⚠️ Balances from cache • Last retrieved: ${timeFormatter.string(lastSuccessTime)}`)
+if (txFailed) addFooterLine(`⚠️ Uncategorised data unavailable`)
+if (!budgetFromCache && !txFailed) addFooterLine(`Last retrieved: ${timeFormatter.string(lastSuccessTime)}`)
+
 // === 🔁 Auto-refresh
-const refreshInterval = failedNow ? 30 : 360 // in minutes
+const refreshInterval = (budgetFromCache || txFailed) ? 30 : 360 // in minutes
 const nextRefresh = new Date(Date.now() + refreshInterval * 60 * 1000)
 w.refreshAfterDate = nextRefresh
 
