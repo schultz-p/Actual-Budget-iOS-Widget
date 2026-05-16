@@ -80,6 +80,8 @@ function isoDateNDaysAgo(n, from) {
   return d.toISOString().slice(0, 10)
 }
 
+async function main() {
+
 // === 📅 Format timestamps
 const now = new Date()
 const isoMonth = now.toISOString().slice(0, 7)
@@ -268,3 +270,7 @@ w.setPadding(widgetPadding, widgetPadding, widgetPadding, widgetPadding)
 w.presentLarge()
 Script.setWidget(w)
 Script.complete()
+
+} // end main()
+
+await main()
