@@ -49,6 +49,8 @@ const uncategorisedFontSize = 12            // Font size for uncategorised summa
 // === ⚙️ BEHAVIOUR SETTINGS ===
 
 const enableDebugLogging = false            // Log fetch/debug info to console
+const refreshIntervalMinutes = 360          // How often the widget refreshes on success
+const retryIntervalMinutes = 30             // How often to retry after any failure
 
 // === 🔧 Helper: Format Amount
 function formatAmount(amount) {
@@ -257,7 +259,7 @@ if (txFailed) addFooterLine(`⚠️ Uncategorised data unavailable`)
 if (!budgetFromCache && !txFailed) addFooterLine(`Last retrieved: ${timeFormatter.string(lastSuccessTime)}`)
 
 // === 🔁 Auto-refresh
-const refreshInterval = (budgetFromCache || txFailed) ? 30 : 360 // in minutes
+const refreshInterval = (budgetFromCache || txFailed) ? retryIntervalMinutes : refreshIntervalMinutes
 const nextRefresh = new Date(Date.now() + refreshInterval * 60 * 1000)
 w.refreshAfterDate = nextRefresh
 
