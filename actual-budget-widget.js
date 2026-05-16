@@ -132,9 +132,8 @@ const accountsReq = makeApiRequest(`/v1/budgets/${syncId}/accounts`)
 
 let uncategorised = []
 
-let accountData
 try {
-  accountData = await accountsReq.loadJSON()
+  const accountData = await accountsReq.loadJSON()
   assertDataArray(accountData, "accounts")
   const validAccounts = accountData.data.filter(a => !a.closed && !a.offbudget)
   if (enableDebugLogging) console.log(`✅ Found ${validAccounts.length} accounts`)
