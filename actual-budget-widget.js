@@ -15,6 +15,9 @@ const targetGroupName = "Category Group Title"
 // 💸 Currency formatting
 const currencyPrefix = "$"  // Symbol shown before the number
 const currencySuffix = ""   // Text shown after the number
+// Actual stores amounts as integers in the minor unit (cents for USD, pence for GBP, etc.)
+// Set to 1 for zero-decimal currencies like JPY or KWD
+const currencyMinorUnitDivisor = 100
 
 // === 🎨 APPEARANCE SETTINGS ===
 
@@ -50,7 +53,7 @@ const enableDebugLogging = false            // Log fetch/debug info to console
 // === 🔧 Helper: Format Amount
 function formatAmount(amount) {
   const abs = Math.abs(amount)
-  const formatted = `${currencyPrefix}${(abs / 100).toFixed(2)}${currencySuffix}`
+  const formatted = `${currencyPrefix}${(abs / currencyMinorUnitDivisor).toFixed(2)}${currencySuffix}`
   return amount < 0 ? `-${formatted}` : formatted
 }
 
