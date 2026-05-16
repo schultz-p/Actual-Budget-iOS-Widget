@@ -21,7 +21,7 @@ jobs:
 
       - name: Lint with ESLint
         run: |
-          npm install --no-save eslint
+          npm install --no-save eslint@8
           npx eslint actual-budget-widget.js \
             --rule '{"no-undef": "off", "no-unused-vars": "warn", "no-console": "off"}' \
             --env es2020
