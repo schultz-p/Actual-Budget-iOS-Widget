@@ -135,7 +135,14 @@ try {
 
   const sinceDate = isoDateNDaysAgo(lookbackDays)
 
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
   for (let acc of validAccounts) {
+    if (!UUID_RE.test(acc.id)) {
+      console.warn(`⚠️ Skipping account '${acc.name}': unexpected id format '${acc.id}'`)
+      failedNow = true
+      continue
+    }
     const txUrl = `${apiBaseUrl}/v1/budgets/${syncId}/accounts/${acc.id}/transactions?since_date=${sinceDate}`
     const txReq = new Request(txUrl)
     txReq.headers = { "x-api-key": apiKey, "accept": "application/json" }
