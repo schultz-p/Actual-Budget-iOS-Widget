@@ -14,14 +14,13 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
 
       - name: Check syntax
         run: node --check actual-budget-widget.js
 
       - name: Lint with ESLint
         run: |
-          npm install --no-save eslint@8
+          npm install --no-save eslint
           npx eslint actual-budget-widget.js \
-            --rule '{"no-undef": "off", "no-unused-vars": "warn", "no-console": "off"}' \
-            --env es2020
+            --rule '{"no-unused-vars": "warn"}'
