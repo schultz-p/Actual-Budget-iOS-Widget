@@ -45,7 +45,7 @@ const uncategorisedFontSize = 12            // Font size for uncategorised summa
 
 // === ⚙️ BEHAVIOUR SETTINGS ===
 
-const enableDebugLogging = true             // Log fetch/debug info to console
+const enableDebugLogging = false            // Log fetch/debug info to console
 
 // === 🔧 Helper: Format Amount
 function formatAmount(amount) {
