@@ -22,5 +22,4 @@ jobs:
       - name: Lint with ESLint
         run: |
           npm install --no-save eslint
-          npx eslint actual-budget-widget.js \
-            --rule '{"no-unused-vars": "warn"}'
+          npx eslint actual-budget-widget.js
