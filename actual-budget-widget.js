@@ -230,12 +230,8 @@ if (uncategorised.length >= 1) {
   uncatBox.layoutVertically()
   uncatBox.backgroundColor = uncategorisedBgColor
   uncatBox.cornerRadius = 8
-  uncatBox.setPadding(
-    uncategorisedBoxPadding,
-    uncategorisedBoxPadding,
-    uncategorisedBoxPadding,
-    uncategorisedBoxPadding
-  )
+  const p = uncategorisedBoxPadding
+  uncatBox.setPadding(p, p, p, p)
 
   const daysNote = `past ${lookbackDays} days`
   const uncatText = uncatBox.addText(`${uncategorised.length} uncategorised: ${totalFormatted} • ${daysNote}`)
