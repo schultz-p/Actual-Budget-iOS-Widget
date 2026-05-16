@@ -71,9 +71,9 @@ function makeApiRequest(path) {
   return r
 }
 
-// === 📆 Helper: ISO date N days ago
-function isoDateNDaysAgo(n) {
-  const d = new Date()
+// === 📆 Helper: ISO date N days before a given date
+function isoDateNDaysAgo(n, from) {
+  const d = new Date(from)
   d.setDate(d.getDate() - n)
   return d.toISOString().slice(0, 10)
 }
@@ -138,7 +138,7 @@ try {
   const validAccounts = accountData.data.filter(a => !a.closed && !a.offbudget)
   if (enableDebugLogging) console.log(`✅ Found ${validAccounts.length} accounts`)
 
-  const sinceDate = isoDateNDaysAgo(lookbackDays)
+  const sinceDate = isoDateNDaysAgo(lookbackDays, now)
 
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
