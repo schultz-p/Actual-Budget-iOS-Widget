@@ -139,38 +139,39 @@ try {
 
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-  for (let acc of validAccounts) {
+  const results = await Promise.all(validAccounts.map(async acc => {
     if (!UUID_RE.test(acc.id)) {
       console.warn(`⚠️ Skipping account '${acc.name}': unexpected id format '${acc.id}'`)
-      failedNow = true
-      continue
+      return { ok: false }
     }
-    const txReq = makeApiRequest(`/v1/budgets/${syncId}/accounts/${acc.id}/transactions?since_date=${sinceDate}`)
-
     try {
-      const txData = await txReq.loadJSON()
+      const txData = await makeApiRequest(
+        `/v1/budgets/${syncId}/accounts/${acc.id}/transactions?since_date=${sinceDate}`
+      ).loadJSON()
       assertDataArray(txData, `transactions for '${acc.name}'`)
       const uncats = txData.data.filter(tx =>
         !tx.category &&
         !tx.transfer_id &&
         !tx.starting_balance_flag
       )
-
-      uncategorised.push(...uncats)
-
       if (enableDebugLogging) {
         console.log(`📒 ${acc.name}: ${uncats.length} uncategorised / ${txData.data.length} total`)
         for (const tx of uncats) {
           console.log(`  - ${formatAmount(tx.amount)} on ${tx.date}`)
         }
       }
-
-      accountStats.push({ name: acc.name, total: txData.data.length, uncategorised: uncats.length, error: false })
-
+      return { ok: true, uncats }
     } catch (err) {
       console.warn(`❌ Failed to fetch transactions for '${acc.name}' (${acc.id})`)
       console.warn(err.message || err)
-      accountStats.push({ name: acc.name, total: 0, uncategorised: 0, error: true })
+      return { ok: false }
+    }
+  }))
+
+  for (const result of results) {
+    if (result.ok) {
+      uncategorised.push(...result.uncats)
+    } else {
       failedNow = true
     }
   }
