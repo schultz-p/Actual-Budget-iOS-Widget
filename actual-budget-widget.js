@@ -54,6 +54,13 @@ function formatAmount(amount) {
   return amount < 0 ? `-${formatted}` : formatted
 }
 
+// === 🔧 Helper: Validate API response has a data array
+function assertDataArray(response, label) {
+  if (!response || !Array.isArray(response.data)) {
+    throw new Error(`Malformed response from ${label}: expected { data: [...] }`)
+  }
+}
+
 // === 📆 Helper: ISO date N days ago
 function isoDateNDaysAgo(n) {
   const d = new Date()
@@ -93,7 +100,9 @@ req.headers = {
 }
 
 try {
-  data = await req.loadJSON()
+  const raw = await req.loadJSON()
+  assertDataArray(raw, "category groups")
+  data = raw
   Keychain.set("actual-cache", JSON.stringify({ timestamp: now.toISOString(), data }))
   lastSuccessTime = now
 } catch (e) {
@@ -120,6 +129,7 @@ let accountStats = []
 let accountData
 try {
   accountData = await accountsReq.loadJSON()
+  assertDataArray(accountData, "accounts")
   const validAccounts = accountData.data.filter(a => !a.closed && !a.offbudget)
   if (enableDebugLogging) console.log(`✅ Found ${validAccounts.length} accounts`)
 
@@ -132,6 +142,7 @@ try {
 
     try {
       const txData = await txReq.loadJSON()
+      assertDataArray(txData, `transactions for '${acc.name}'`)
       const uncats = txData.data.filter(tx =>
         !tx.category &&
         !tx.transfer_id &&
