@@ -226,7 +226,7 @@ if (!targetGroup) {
 }
 
 // === 📦 Insert uncategorised transaction box (if applicable)
-if (uncategorised.length >= 1) {
+if (uncategorised.length > 0) {
   const totalAmount = uncategorised.reduce((sum, tx) => sum + tx.amount, 0)
   const totalFormatted = formatAmount(totalAmount)
 
