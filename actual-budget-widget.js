@@ -275,7 +275,7 @@ Script.complete()
 
 // In Scriptable: run the widget. In Node.js (tests): export pure helpers.
 if (typeof module !== 'undefined') {
-  module.exports = { formatAmount, assertDataArray, isoDateNDaysAgo }
+  module.exports = { formatAmount, assertDataArray, isoDateNDaysAgo, main }
 } else {
   main()
 }
