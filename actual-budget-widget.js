@@ -136,7 +136,8 @@ try {
     lastSuccessTime = cache.timestamp ? new Date(cache.timestamp) : null
     budgetFromCache = true
   } else {
-    w.addText("❌ No data & no cache available.")
+    const reason = networkOffline ? "Device offline" : "Server unreachable"
+    w.addText(`❌ ${reason} — no cached data available.`)
     w.refreshAfterDate = new Date(Date.now() + retryIntervalMinutes * 60 * 1000)
     Script.setWidget(w)
     Script.complete()
