@@ -152,6 +152,13 @@ describe('main() — no data and no cache', () => {
     expect(global.Script.complete).toHaveBeenCalled()
     expect(allTexts(widget).some((t) => t.includes('No data'))).toBe(true)
   })
+
+  test('schedules a retry refresh so the widget does not get permanently stuck', async () => {
+    const before = Date.now()
+    await main()
+    expect(widget.refreshAfterDate).toBeInstanceOf(Date)
+    expect(widget.refreshAfterDate.getTime()).toBeGreaterThan(before)
+  })
 })
 
 describe('main() — malformed Keychain cache', () => {

@@ -137,6 +137,7 @@ try {
     budgetFromCache = true
   } else {
     w.addText("❌ No data & no cache available.")
+    w.refreshAfterDate = new Date(Date.now() + retryIntervalMinutes * 60 * 1000)
     Script.setWidget(w)
     Script.complete()
     return
