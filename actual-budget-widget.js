@@ -1,6 +1,5 @@
-// === 📦 CONFIGURATION ===
-// Copy actual-budget-config.example.js → actual-budget-config.js and fill in your values.
-// actual-budget-config.js is in .gitignore so your credentials are never committed.
+// === 📦 CREDENTIALS ===
+// Loaded from actual-budget-config.js (gitignored). See actual-budget-config.example.js.
 const _cfg = typeof importModule !== 'undefined'
   ? importModule('actual-budget-config')
   : (() => { try { return require('./actual-budget-config') } catch { return require('./actual-budget-config.example') } })()
