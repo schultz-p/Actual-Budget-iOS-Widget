@@ -1,56 +1,19 @@
-// === 📦 CONFIGURATION VARIABLES ===
+// === 📦 CONFIGURATION ===
+// Copy actual-budget-config.example.js → actual-budget-config.js and fill in your values.
+// actual-budget-config.js is in .gitignore so your credentials are never committed.
+const _cfg = typeof importModule !== 'undefined'
+  ? importModule('actual-budget-config')
+  : (() => { try { return require('./actual-budget-config') } catch { return require('./actual-budget-config.example') } })()
 
-// 🔑 Your Actual Budget sync ID (Settings → Advanced → Sync ID)
-const syncId = "YOUR_SYNC_ID"
-
-// 🔐 API key set in your actual-http-api server (must match the `API_KEY` env variable)
-const apiKey = "YOUR_API_KEY"
-
-// 🌐 Base URL of your actual-http-api instance (no trailing slash)
-const apiBaseUrl = "https://your-actual-api.example.com"
-
-// 📁 Name of the category group to display in the widget
-const targetGroupName = "Category Group Title"
-
-// 💸 Currency formatting
-const currencyPrefix = "$"  // Symbol shown before the number
-const currencySuffix = ""   // Text shown after the number
-// Actual stores amounts as integers in the minor unit (cents for USD, pence for GBP, etc.)
-// Set to 1 for zero-decimal currencies like JPY or KWD
-const currencyMinorUnitDivisor = 100
-
-// === 🎨 APPEARANCE SETTINGS ===
-
-// Font sizes
-const textSize = 16                         // Category name
-const balanceSize = 16                      // Category balance
-const groupTitleSize = 12                   // Title line
-const footerTextSize = 10                   // Footer line
-
-// Text colors
-const groupTitleColor = Color.gray()        // Title line color
-const footerTextColor = Color.gray()        // Footer line color
-const positiveColor = Color.green()         // Balance > 0
-const zeroColor = Color.gray()              // Balance = 0
-const negativeColor = Color.red()           // Balance < 0
-
-// Layout
-const itemSpacing = 10                      // Space between lines
-const widgetPadding = 20                    // Padding around widget edges
-
-// === 🔍 UNCATEGORISED TRANSACTIONS SETTINGS ===
-
-const lookbackDays = 30                     // Days to look back for uncategorised txns
-const uncategorisedBgColor = new Color("#333333", 0.2)  // Background box color
-const uncategorisedTextColor = Color.orange()           // Text color
-const uncategorisedBoxPadding = 6           // Padding inside the summary box
-const uncategorisedFontSize = 12            // Font size for uncategorised summary
-
-// === ⚙️ BEHAVIOUR SETTINGS ===
-
-const enableDebugLogging = false            // Log fetch/debug info to console
-const refreshIntervalMinutes = 360          // How often the widget refreshes on success
-const retryIntervalMinutes = 30             // How often to retry after any failure
+const {
+  syncId, apiKey, apiBaseUrl, targetGroupName,
+  currencyPrefix, currencySuffix, currencyMinorUnitDivisor,
+  textSize, balanceSize, groupTitleSize, footerTextSize,
+  groupTitleColor, footerTextColor, positiveColor, zeroColor, negativeColor,
+  itemSpacing, widgetPadding,
+  lookbackDays, uncategorisedBgColor, uncategorisedTextColor, uncategorisedBoxPadding, uncategorisedFontSize,
+  enableDebugLogging, refreshIntervalMinutes, retryIntervalMinutes,
+} = _cfg
 
 // === 🔧 Helper: Format Amount
 function formatAmount(amount) {
