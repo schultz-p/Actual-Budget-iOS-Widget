@@ -160,7 +160,7 @@ describe('main() — UUID validation', () => {
     global.Request = makeRequestMock({ accountsRes: ACCOUNT_INVALID_UUID })
     await main()
     // Invalid UUID → ok: false → txFailed footer shown
-    expect(allTexts(widget).some((t) => t.includes('Uncategorised data unavailable'))).toBe(true)
+    expect(allTexts(widget).some((t) => t.includes('Transactions unavailable'))).toBe(true)
     expect(global.Script.complete).toHaveBeenCalled()
   })
 })
@@ -169,8 +169,14 @@ describe('main() — transaction fetch failure', () => {
   test('shows the txFailed footer when a per-account transaction request throws', async () => {
     global.Request = makeRequestMock({ transactionsRes: new Error('tx fetch failed') })
     await main()
-    expect(allTexts(widget).some((t) => t.includes('Uncategorised data unavailable'))).toBe(true)
+    expect(allTexts(widget).some((t) => t.includes('Transactions unavailable'))).toBe(true)
     expect(global.Script.complete).toHaveBeenCalled()
+  })
+
+  test('appends "(offline)" to the txFailed footer when the failure looks like a connectivity issue', async () => {
+    global.Request = makeRequestMock({ transactionsRes: new Error('network connection was lost') })
+    await main()
+    expect(allTexts(widget).some((t) => t.includes('Transactions unavailable (offline)'))).toBe(true)
   })
 })
 
@@ -178,7 +184,36 @@ describe('main() — accounts list fetch failure', () => {
   test('shows the txFailed footer when the accounts request itself throws', async () => {
     global.Request = makeRequestMock({ accountsRes: new Error('accounts unavailable') })
     await main()
-    expect(allTexts(widget).some((t) => t.includes('Uncategorised data unavailable'))).toBe(true)
+    expect(allTexts(widget).some((t) => t.includes('Transactions unavailable'))).toBe(true)
+    expect(global.Script.complete).toHaveBeenCalled()
+  })
+})
+
+describe('main() — partial transaction fetch failure', () => {
+  const TWO_ACCOUNTS = {
+    data: [
+      { id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', name: 'Checking', closed: false, offbudget: false },
+      { id: 'b2c3d4e5-f6a7-8901-bcde-f12345678901', name: 'Savings',  closed: false, offbudget: false },
+    ],
+  }
+
+  test('shows "Some transactions unavailable" footer when only some account transaction fetches fail', async () => {
+    let txCallCount = 0
+    global.Request = jest.fn().mockImplementation((url) => {
+      const mock = { headers: {}, loadJSON: jest.fn() }
+      if (url.includes('categorygroups')) {
+        mock.loadJSON.mockResolvedValue(GROUPS_WITH_TARGET)
+      } else if (url.includes('/transactions')) {
+        txCallCount++
+        if (txCallCount === 1) mock.loadJSON.mockResolvedValue(NO_UNCATEGORISED_TRANSACTIONS)
+        else mock.loadJSON.mockRejectedValue(new Error('tx fetch failed'))
+      } else if (url.includes('/accounts')) {
+        mock.loadJSON.mockResolvedValue(TWO_ACCOUNTS)
+      }
+      return mock
+    })
+    await main()
+    expect(allTexts(widget).some((t) => t.includes('Some transactions unavailable'))).toBe(true)
     expect(global.Script.complete).toHaveBeenCalled()
   })
 })

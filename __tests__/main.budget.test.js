@@ -135,22 +135,79 @@ describe('main() — cache fallback', () => {
     await main()
     expect(global.Keychain.set).not.toHaveBeenCalled()
   })
+
+  test('labels the cache footer as "Device offline" when the error is a connectivity failure', async () => {
+    // default beforeEach throws new Error('offline') → networkOffline = true
+    await main()
+    expect(allTexts(widget).some((t) => t.includes('Device offline'))).toBe(true)
+  })
+
+  test('labels the cache footer as "Server unreachable" when the server returned an error', async () => {
+    global.Request = jest.fn().mockImplementation((url) => ({
+      url, headers: {},
+      loadJSON: jest.fn().mockRejectedValue(new Error('500 Internal Server Error')),
+    }))
+    await main()
+    expect(allTexts(widget).some((t) => t.includes('Server unreachable'))).toBe(true)
+  })
 })
 
 describe('main() — no data and no cache', () => {
   beforeEach(() => {
-    global.Request = jest.fn().mockImplementation((url) => ({
-      url,
-      headers: {},
-      loadJSON: jest.fn().mockRejectedValue(new Error('offline')),
-    }))
     global.Keychain.contains = jest.fn(() => false)
   })
 
-  test('shows an error message and completes the script', async () => {
+  test('shows "Device offline" when the error looks like a connectivity failure', async () => {
+    global.Request = jest.fn().mockImplementation((url) => ({
+      url, headers: {},
+      loadJSON: jest.fn().mockRejectedValue(new Error('offline')),
+    }))
     await main()
     expect(global.Script.complete).toHaveBeenCalled()
-    expect(allTexts(widget).some((t) => t.includes('No data'))).toBe(true)
+    expect(allTexts(widget).some((t) => t.includes('Device offline'))).toBe(true)
+  })
+
+  test('shows "Server unreachable" when the error is not a connectivity failure', async () => {
+    global.Request = jest.fn().mockImplementation((url) => ({
+      url, headers: {},
+      loadJSON: jest.fn().mockRejectedValue(new Error('500 Internal Server Error')),
+    }))
+    await main()
+    expect(global.Script.complete).toHaveBeenCalled()
+    expect(allTexts(widget).some((t) => t.includes('Server unreachable'))).toBe(true)
+  })
+
+  test('schedules a retry refresh so the widget does not get permanently stuck', async () => {
+    global.Request = jest.fn().mockImplementation((url) => ({
+      url, headers: {},
+      loadJSON: jest.fn().mockRejectedValue(new Error('offline')),
+    }))
+    const before = Date.now()
+    await main()
+    expect(widget.refreshAfterDate).toBeInstanceOf(Date)
+    expect(widget.refreshAfterDate.getTime()).toBeGreaterThan(before)
+  })
+})
+
+describe('main() — HTTPS enforcement', () => {
+  test('renders an error widget and completes when apiBaseUrl does not use HTTPS', async () => {
+    jest.resetModules()
+    // The widget falls back to actual-budget-config.example when the real
+    // config file is absent; mock that file to inject an HTTP (non-HTTPS) URL.
+    jest.doMock('../actual-budget-config.example', () => ({
+      syncId: 'test',
+      apiKey: 'test',
+      apiBaseUrl: 'http://insecure.example.com',
+      targetGroupName: 'Category Group Title',
+    }))
+    const { main: mainWithHttp } = require('../actual-budget-widget')
+    await mainWithHttp()
+    expect(global.Script.complete).toHaveBeenCalled()
+    expect(allTexts(widget).some((t) => t.includes('HTTPS'))).toBe(true)
+  })
+
+  afterEach(() => {
+    jest.resetModules()
   })
 })
 

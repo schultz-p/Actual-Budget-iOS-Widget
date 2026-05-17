@@ -89,7 +89,11 @@ function isoDateNDaysAgo(n, from) {
 async function main() {
 
 if (!apiBaseUrl.startsWith("https://")) {
-  throw new Error(`apiBaseUrl must use HTTPS — got: "${apiBaseUrl}"`)
+  const w = new ListWidget()
+  w.addText(`❌ Config error: apiBaseUrl must use HTTPS`)
+  Script.setWidget(w)
+  Script.complete()
+  return
 }
 
 // === 📅 Format timestamps
@@ -136,7 +140,9 @@ try {
     lastSuccessTime = cache.timestamp ? new Date(cache.timestamp) : null
     budgetFromCache = true
   } else {
-    w.addText("❌ No data & no cache available.")
+    const reason = networkOffline ? "Device offline" : "Server unreachable"
+    w.addText(`❌ ${reason} — no cached data available.`)
+    w.refreshAfterDate = new Date(Date.now() + retryIntervalMinutes * 60 * 1000)
     Script.setWidget(w)
     Script.complete()
     return
@@ -277,9 +283,13 @@ function addFooterLine(text) {
   t.textColor = footerTextColor
 }
 
-if (budgetFromCache) addFooterLine(`⚠️ Balances from cache • Last retrieved: ${lastSuccessTime ? timeFormatter.string(lastSuccessTime) : "unknown"}`)
-if (txFailed) addFooterLine(`⚠️ Uncategorised data unavailable`)
-if (txPartialFail) addFooterLine(`⚠️ Uncategorised data incomplete`)
+if (budgetFromCache) {
+  const cacheTime = lastSuccessTime ? timeFormatter.string(lastSuccessTime) : "unknown"
+  const reason = networkOffline ? "Device offline" : "Server unreachable"
+  addFooterLine(`⚠️ ${reason} — balances from cache (${cacheTime})`)
+}
+if (txFailed) addFooterLine(`⚠️ Transactions unavailable${networkOffline ? " (offline)" : ""}`)
+if (txPartialFail) addFooterLine(`⚠️ Some transactions unavailable`)
 if (!budgetFromCache && !txFailed) addFooterLine(`Last retrieved: ${timeFormatter.string(lastSuccessTime)}`)
 
 // === 🔁 Auto-refresh
@@ -301,5 +311,10 @@ Script.complete()
 if (typeof module !== 'undefined') {
   module.exports = { formatAmount, assertDataArray, isoDateNDaysAgo, main }
 } else {
-  main()
+  main().catch(err => {
+    const w = new ListWidget()
+    w.addText(`❌ Unexpected error: ${err.message || String(err)}`)
+    Script.setWidget(w)
+    Script.complete()
+  })
 }
