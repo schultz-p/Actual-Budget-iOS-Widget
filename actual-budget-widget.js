@@ -4,7 +4,7 @@ const _cfg = typeof importModule !== 'undefined'
   ? importModule('actual-budget-config')
   : (() => { try { return require('./actual-budget-config') } catch { return require('./actual-budget-config.example') } })()
 
-const { syncId, apiKey, apiBaseUrl, targetGroupName } = _cfg
+const { syncId, apiKey, apiBaseUrl, targetGroupName, cfAccessClientId = "", cfAccessClientSecret = "" } = _cfg
 
 // 💸 Currency formatting
 const currencyPrefix = "$"  // Symbol shown before the number
@@ -47,6 +47,10 @@ const refreshIntervalMinutes = 360          // How often the widget refreshes on
 const retryIntervalMinutes = 30             // How often to retry after a server/API failure
 const offlineRetryIntervalMinutes = 120    // Longer backoff when the device has no connectivity
 const requestTimeoutSeconds = 15           // Per-request timeout; avoids 60s iOS default hang
+// Sent as the User-Agent on every request. Add this string to your Cloudflare WAF allowlist
+// to prevent UA-based filtering rules from blocking the widget. If your WAF expects a
+// specific value, change this to match.
+const userAgent = "actual-budget-ios-widget/1.0 (Scriptable; iOS)"
 
 // === 🔧 Helper: Format Amount
 function formatAmount(amount) {
@@ -65,7 +69,12 @@ function assertDataArray(response, label) {
 // === 🔧 Helper: Create an authenticated API request
 function makeApiRequest(path) {
   const r = new Request(`${apiBaseUrl}${path}`)
-  r.headers = { "x-api-key": apiKey, "accept": "application/json" }
+  const headers = { "x-api-key": apiKey, "accept": "application/json", "User-Agent": userAgent }
+  if (cfAccessClientId && cfAccessClientSecret) {
+    headers["CF-Access-Client-Id"] = cfAccessClientId
+    headers["CF-Access-Client-Secret"] = cfAccessClientSecret
+  }
+  r.headers = headers
   r.timeoutInterval = requestTimeoutSeconds
   return r
 }
