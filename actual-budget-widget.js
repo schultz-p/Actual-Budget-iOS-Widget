@@ -70,8 +70,11 @@ function makeApiRequest(path) {
   return r
 }
 
-// === 🔧 Helper: Detect iOS offline errors by message heuristic
-function isOfflineError(err) {
+// === 🔧 Helper: Detect connectivity failures vs server errors
+// If the request received any HTTP status code the network path worked — it's a server problem.
+// Only fall back to message heuristics when there's no response at all (never reached the server).
+function isOfflineError(err, req) {
+  if (req && req.response && req.response.statusCode) return false
   const msg = (err && (err.message || String(err))).toLowerCase()
   return msg.includes("offline") || msg.includes("network connection was lost") || msg.includes("could not connect to the server")
 }
@@ -127,7 +130,7 @@ try {
   lastSuccessTime = now
 } catch (e) {
   console.error("❌ API fetch failed:", e)
-  if (isOfflineError(e)) networkOffline = true
+  if (isOfflineError(e, req)) networkOffline = true
   if (cache) {
     data = cache.data
     lastSuccessTime = cache.timestamp ? new Date(cache.timestamp) : null
@@ -161,10 +164,11 @@ try {
       console.warn(`⚠️ Skipping account '${acc.name}': unexpected id format '${acc.id}'`)
       return { ok: false }
     }
+    const txReq = makeApiRequest(
+      `/v1/budgets/${syncId}/accounts/${acc.id}/transactions?since_date=${sinceDate}`
+    )
     try {
-      const txData = await makeApiRequest(
-        `/v1/budgets/${syncId}/accounts/${acc.id}/transactions?since_date=${sinceDate}`
-      ).loadJSON()
+      const txData = await txReq.loadJSON()
       assertDataArray(txData, `transactions for '${acc.name}'`)
       const uncats = txData.data.filter(tx =>
         !tx.category &&
@@ -181,15 +185,14 @@ try {
     } catch (err) {
       console.warn(`❌ Failed to fetch transactions for '${acc.name}' (${acc.id})`)
       console.warn(err.message || err)
-      return { ok: false }
+      return { ok: isOfflineError(err, txReq) ? "offline" : false }
     }
   }))
 
-  const successCount = results.filter(r => r.ok).length
+  const successCount = results.filter(r => r.ok === true).length
   for (const result of results) {
-    if (result.ok) {
-      uncategorised.push(...result.uncats)
-    }
+    if (result.ok === true) uncategorised.push(...result.uncats)
+    if (result.ok === "offline") networkOffline = true
   }
   // Only treat as a full failure (triggering short retry) when no accounts succeeded.
   // Partial failures get a warning in the footer but don't shorten the refresh interval.
@@ -202,7 +205,7 @@ try {
 } catch (err) {
   console.error("❌ Failed to fetch account list")
   console.error(err.message || err)
-  if (isOfflineError(err)) networkOffline = true
+  if (isOfflineError(err, accountsReq)) networkOffline = true
   txFailed = true
 }
 
