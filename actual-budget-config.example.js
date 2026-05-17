@@ -16,5 +16,12 @@ const apiBaseUrl = "https://your-actual-api.example.com"
 // 📁 Name of the category group to display in the widget
 const targetGroupName = "Category Group Title"
 
+// ☁️ Cloudflare Access service token (optional)
+// Only needed if your actual-http-api endpoint is protected by a Cloudflare Access policy.
+// Create a service token in Zero Trust → Access → Service Auth, then paste the values below.
+// Leave both empty if you are not using Cloudflare Access.
+const cfAccessClientId = ""
+const cfAccessClientSecret = ""
+
 // Node.js / Jest compatibility
-if (typeof module !== 'undefined') module.exports = { syncId, apiKey, apiBaseUrl, targetGroupName }
+if (typeof module !== 'undefined') module.exports = { syncId, apiKey, apiBaseUrl, targetGroupName, cfAccessClientId, cfAccessClientSecret }

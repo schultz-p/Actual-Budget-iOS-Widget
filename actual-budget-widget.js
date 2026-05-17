@@ -4,7 +4,7 @@ const _cfg = typeof importModule !== 'undefined'
   ? importModule('actual-budget-config')
   : (() => { try { return require('./actual-budget-config') } catch { return require('./actual-budget-config.example') } })()
 
-const { syncId, apiKey, apiBaseUrl, targetGroupName } = _cfg
+const { syncId, apiKey, apiBaseUrl, targetGroupName, cfAccessClientId = "", cfAccessClientSecret = "" } = _cfg
 
 // 💸 Currency formatting
 const currencyPrefix = "$"  // Symbol shown before the number
@@ -65,7 +65,12 @@ function assertDataArray(response, label) {
 // === 🔧 Helper: Create an authenticated API request
 function makeApiRequest(path) {
   const r = new Request(`${apiBaseUrl}${path}`)
-  r.headers = { "x-api-key": apiKey, "accept": "application/json" }
+  const headers = { "x-api-key": apiKey, "accept": "application/json" }
+  if (cfAccessClientId && cfAccessClientSecret) {
+    headers["CF-Access-Client-Id"] = cfAccessClientId
+    headers["CF-Access-Client-Secret"] = cfAccessClientSecret
+  }
+  r.headers = headers
   r.timeoutInterval = requestTimeoutSeconds
   return r
 }
