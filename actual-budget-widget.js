@@ -82,6 +82,10 @@ function isoDateNDaysAgo(n, from) {
 
 async function main() {
 
+if (!apiBaseUrl.startsWith("https://")) {
+  throw new Error(`apiBaseUrl must use HTTPS — got: "${apiBaseUrl}"`)
+}
+
 // === 📅 Format timestamps
 const now = new Date()
 const isoMonth = now.toISOString().slice(0, 7)
