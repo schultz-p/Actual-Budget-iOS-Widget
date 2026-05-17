@@ -189,6 +189,28 @@ describe('main() — no data and no cache', () => {
   })
 })
 
+describe('main() — HTTPS enforcement', () => {
+  test('renders an error widget and completes when apiBaseUrl does not use HTTPS', async () => {
+    jest.resetModules()
+    // The widget falls back to actual-budget-config.example when the real
+    // config file is absent; mock that file to inject an HTTP (non-HTTPS) URL.
+    jest.doMock('../actual-budget-config.example', () => ({
+      syncId: 'test',
+      apiKey: 'test',
+      apiBaseUrl: 'http://insecure.example.com',
+      targetGroupName: 'Category Group Title',
+    }))
+    const { main: mainWithHttp } = require('../actual-budget-widget')
+    await mainWithHttp()
+    expect(global.Script.complete).toHaveBeenCalled()
+    expect(allTexts(widget).some((t) => t.includes('HTTPS'))).toBe(true)
+  })
+
+  afterEach(() => {
+    jest.resetModules()
+  })
+})
+
 describe('main() — malformed Keychain cache', () => {
   test('recovers gracefully when the cache JSON is invalid and the API succeeds', async () => {
     global.Keychain.contains = jest.fn(() => true)

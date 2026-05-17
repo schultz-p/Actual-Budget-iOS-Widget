@@ -89,7 +89,11 @@ function isoDateNDaysAgo(n, from) {
 async function main() {
 
 if (!apiBaseUrl.startsWith("https://")) {
-  throw new Error(`apiBaseUrl must use HTTPS — got: "${apiBaseUrl}"`)
+  const w = new ListWidget()
+  w.addText(`❌ Config error: apiBaseUrl must use HTTPS`)
+  Script.setWidget(w)
+  Script.complete()
+  return
 }
 
 // === 📅 Format timestamps
@@ -307,5 +311,10 @@ Script.complete()
 if (typeof module !== 'undefined') {
   module.exports = { formatAmount, assertDataArray, isoDateNDaysAgo, main }
 } else {
-  main()
+  main().catch(err => {
+    const w = new ListWidget()
+    w.addText(`❌ Unexpected error: ${err.message || String(err)}`)
+    Script.setWidget(w)
+    Script.complete()
+  })
 }
