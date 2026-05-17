@@ -5,15 +5,47 @@ const _cfg = typeof importModule !== 'undefined'
   ? importModule('actual-budget-config')
   : (() => { try { return require('./actual-budget-config') } catch { return require('./actual-budget-config.example') } })()
 
-const {
-  syncId, apiKey, apiBaseUrl, targetGroupName,
-  currencyPrefix, currencySuffix, currencyMinorUnitDivisor,
-  textSize, balanceSize, groupTitleSize, footerTextSize,
-  groupTitleColor, footerTextColor, positiveColor, zeroColor, negativeColor,
-  itemSpacing, widgetPadding,
-  lookbackDays, uncategorisedBgColor, uncategorisedTextColor, uncategorisedBoxPadding, uncategorisedFontSize,
-  enableDebugLogging, refreshIntervalMinutes, retryIntervalMinutes,
-} = _cfg
+const { syncId, apiKey, apiBaseUrl, targetGroupName } = _cfg
+
+// 💸 Currency formatting
+const currencyPrefix = "$"  // Symbol shown before the number
+const currencySuffix = ""   // Text shown after the number
+// Actual stores amounts as integers in the minor unit (cents for USD, pence for GBP, etc.)
+// Set to 1 for zero-decimal currencies like JPY or KWD
+const currencyMinorUnitDivisor = 100
+
+// === 🎨 APPEARANCE SETTINGS ===
+
+// Font sizes
+const textSize = 16                         // Category name
+const balanceSize = 16                      // Category balance
+const groupTitleSize = 12                   // Title line
+const footerTextSize = 10                   // Footer line
+
+// Text colors
+const groupTitleColor = Color.gray()        // Title line color
+const footerTextColor = Color.gray()        // Footer line color
+const positiveColor = Color.green()         // Balance > 0
+const zeroColor = Color.gray()              // Balance = 0
+const negativeColor = Color.red()           // Balance < 0
+
+// Layout
+const itemSpacing = 10                      // Space between lines
+const widgetPadding = 20                    // Padding around widget edges
+
+// === 🔍 UNCATEGORISED TRANSACTIONS SETTINGS ===
+
+const lookbackDays = 30                     // Days to look back for uncategorised txns
+const uncategorisedBgColor = new Color("#333333", 0.2)  // Background box color
+const uncategorisedTextColor = Color.orange()           // Text color
+const uncategorisedBoxPadding = 6           // Padding inside the summary box
+const uncategorisedFontSize = 12            // Font size for uncategorised summary
+
+// === ⚙️ BEHAVIOUR SETTINGS ===
+
+const enableDebugLogging = false            // Log fetch/debug info to console
+const refreshIntervalMinutes = 360          // How often the widget refreshes on success
+const retryIntervalMinutes = 30             // How often to retry after any failure
 
 // === 🔧 Helper: Format Amount
 function formatAmount(amount) {

@@ -25,7 +25,7 @@ This is a custom iOS widget for [Actual Budget](https://actualbudget.org), built
 
 ## 🚀 Setup
 
-The widget uses two Scriptable scripts: one for your personal config (credentials, appearance) and one for the widget logic. Keeping them separate means your API key and sync ID never have to live in the same file you share or version-control.
+The widget uses two Scriptable scripts: a small config file for your credentials, and the widget itself. This keeps your API key and sync ID out of the main script so they're never accidentally shared or committed to git.
 
 1. **Install Scriptable** from the App Store on your iPhone.
 
@@ -41,11 +41,11 @@ const apiBaseUrl = “https://your-actual-api.example.com”
 const targetGroupName = “Category Group Title”
 ```
 
-3. **Optional: Customize appearance** in `actual-budget-config` (currency, fonts, colors, spacing).
-
-4. **Create the widget script:**
+3. **Create the widget script:**
    - Tap **+** again → name it `actual-budget-widget`
    - Paste in the contents of [`actual-budget-widget.js`](./actual-budget-widget.js)
+
+4. **Optional: Customize appearance** — fonts, colors, currency, and refresh intervals are all at the top of `actual-budget-widget.js`.
 
 5. **Run `actual-budget-widget` once** in the Scriptable app to confirm it works. It should show a list of categories and their balances.
 
