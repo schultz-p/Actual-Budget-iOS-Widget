@@ -45,6 +45,7 @@ const uncategorisedFontSize = 12            // Font size for uncategorised summa
 const enableDebugLogging = false            // Log fetch/debug info to console
 const refreshIntervalMinutes = 360          // How often the widget refreshes on success
 const retryIntervalMinutes = 30             // How often to retry after any failure
+const requestTimeoutSeconds = 15           // Per-request timeout; avoids 60s iOS default hang
 
 // === 🔧 Helper: Format Amount
 function formatAmount(amount) {
@@ -64,6 +65,7 @@ function assertDataArray(response, label) {
 function makeApiRequest(path) {
   const r = new Request(`${apiBaseUrl}${path}`)
   r.headers = { "x-api-key": apiKey, "accept": "application/json" }
+  r.timeoutInterval = requestTimeoutSeconds
   return r
 }
 
