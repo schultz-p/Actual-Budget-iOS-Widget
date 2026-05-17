@@ -1,4 +1,5 @@
 const { main } = require('../actual-budget-widget')
+const { makeTextEl, makeStack, allTexts } = require('../test/helpers')
 
 // --- Fixtures ---
 
@@ -34,31 +35,10 @@ function makeRequestMock(groupsResponse) {
   })
 }
 
-// --- Helpers ---
+// --- Widget setup ---
 
-// Collect every string passed to addText() across the widget and all its stacks.
-function allTexts(widgetInstance) {
-  const direct = widgetInstance.addText.mock.calls.map((c) => c[0])
-  const stacks = widgetInstance.addStack.mock.results.map((r) => r.value)
-  const nested = stacks.flatMap((s) => s.addText.mock.calls.map((c) => c[0]))
-  return [...direct, ...nested]
-}
-
-// Capture the ListWidget instance created inside main() so we can inspect it.
 let widget
 beforeEach(() => {
-  const makeTextEl = () => ({ font: null, textColor: null })
-  const makeStack = () => ({
-    layoutHorizontally: jest.fn(),
-    layoutVertically: jest.fn(),
-    centerAlignContent: jest.fn(),
-    addText: jest.fn(() => makeTextEl()),
-    addSpacer: jest.fn(),
-    addStack: jest.fn(() => makeStack()),
-    backgroundColor: null,
-    cornerRadius: null,
-    setPadding: jest.fn(),
-  })
   global.ListWidget = jest.fn().mockImplementation(() => {
     widget = {
       addText: jest.fn(() => makeTextEl()),

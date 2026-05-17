@@ -1,16 +1,10 @@
-// === 📦 CONFIGURATION VARIABLES ===
+// === 📦 CREDENTIALS ===
+// Loaded from actual-budget-config.js (gitignored). See actual-budget-config.example.js.
+const _cfg = typeof importModule !== 'undefined'
+  ? importModule('actual-budget-config')
+  : (() => { try { return require('./actual-budget-config') } catch { return require('./actual-budget-config.example') } })()
 
-// 🔑 Your Actual Budget sync ID (Settings → Advanced → Sync ID)
-const syncId = "YOUR_SYNC_ID"
-
-// 🔐 API key set in your actual-http-api server (must match the `API_KEY` env variable)
-const apiKey = "YOUR_API_KEY"
-
-// 🌐 Base URL of your actual-http-api instance (no trailing slash)
-const apiBaseUrl = "https://your-actual-api.example.com"
-
-// 📁 Name of the category group to display in the widget
-const targetGroupName = "Category Group Title"
+const { syncId, apiKey, apiBaseUrl, targetGroupName } = _cfg
 
 // 💸 Currency formatting
 const currencyPrefix = "$"  // Symbol shown before the number
@@ -82,6 +76,10 @@ function isoDateNDaysAgo(n, from) {
 
 async function main() {
 
+if (!apiBaseUrl.startsWith("https://")) {
+  throw new Error(`apiBaseUrl must use HTTPS — got: "${apiBaseUrl}"`)
+}
+
 // === 📅 Format timestamps
 const now = new Date()
 const isoMonth = now.toISOString().slice(0, 7)
@@ -104,7 +102,7 @@ let txFailed = false
 if (Keychain.contains("actual-cache")) {
   try {
     cache = JSON.parse(Keychain.get("actual-cache"))
-  } catch (e) {
+  } catch {
     console.warn("⚠️ Cache could not be parsed")
   }
 }
