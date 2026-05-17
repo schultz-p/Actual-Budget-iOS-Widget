@@ -223,3 +223,64 @@ describe('main() — malformed Keychain cache', () => {
     expect(allTexts(widget).some((t) => t.includes('Category Group Title'))).toBe(true)
   })
 })
+
+describe('main() — rate limiting (HTTP 429)', () => {
+  const cachedPayload = JSON.stringify({
+    timestamp: new Date().toISOString(),
+    data: GROUPS_WITH_TARGET,
+  })
+
+  beforeEach(() => {
+    global.Keychain.contains = jest.fn(() => true)
+    global.Keychain.get = jest.fn(() => cachedPayload)
+    global.Request = jest.fn().mockImplementation((url) => ({
+      url, headers: {},
+      loadJSON: jest.fn().mockRejectedValue(new Error('429 Too Many Requests')),
+    }))
+  })
+
+  test('falls back to cached data when the budget API is rate-limited', async () => {
+    await main()
+    expect(global.Script.complete).toHaveBeenCalled()
+    expect(allTexts(widget).some((t) => t.includes('from cache'))).toBe(true)
+  })
+
+  test('labels the cache footer as "Server unreachable" (not "Device offline") for a 429', async () => {
+    await main()
+    expect(allTexts(widget).some((t) => t.includes('Server unreachable'))).toBe(true)
+    expect(allTexts(widget).some((t) => t.includes('Device offline'))).toBe(false)
+  })
+})
+
+describe('main() — API returns generic error object instead of data array', () => {
+  // The API now returns fixed error shapes (e.g. { error: "Resource not found" }) instead of
+  // raw internal messages. If loadJSON() resolves with this shape, assertDataArray throws,
+  // the catch block fires, and the widget must fall back to cache gracefully.
+  const cachedPayload = JSON.stringify({
+    timestamp: new Date().toISOString(),
+    data: GROUPS_WITH_TARGET,
+  })
+
+  test('falls back to cache when the API resolves with a generic error object (no data array)', async () => {
+    global.Keychain.contains = jest.fn(() => true)
+    global.Keychain.get = jest.fn(() => cachedPayload)
+    global.Request = jest.fn().mockImplementation((url) => ({
+      url, headers: {},
+      loadJSON: jest.fn().mockResolvedValue({ error: 'Resource not found' }),
+    }))
+    await main()
+    expect(global.Script.complete).toHaveBeenCalled()
+    expect(allTexts(widget).some((t) => t.includes('from cache'))).toBe(true)
+  })
+
+  test('shows "Server unreachable" footer when the API resolves with a generic error object', async () => {
+    global.Keychain.contains = jest.fn(() => true)
+    global.Keychain.get = jest.fn(() => cachedPayload)
+    global.Request = jest.fn().mockImplementation((url) => ({
+      url, headers: {},
+      loadJSON: jest.fn().mockResolvedValue({ error: 'Invalid request parameters' }),
+    }))
+    await main()
+    expect(allTexts(widget).some((t) => t.includes('Server unreachable'))).toBe(true)
+  })
+})

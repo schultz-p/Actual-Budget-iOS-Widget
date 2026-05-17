@@ -189,6 +189,15 @@ describe('main() — accounts list fetch failure', () => {
   })
 })
 
+describe('main() — rate limiting (HTTP 429)', () => {
+  test('shows "Transactions unavailable" when all account transaction requests are rate-limited', async () => {
+    global.Request = makeRequestMock({ transactionsRes: new Error('429 Too Many Requests') })
+    await main()
+    expect(allTexts(widget).some((t) => t.includes('Transactions unavailable'))).toBe(true)
+    expect(global.Script.complete).toHaveBeenCalled()
+  })
+})
+
 describe('main() — partial transaction fetch failure', () => {
   const TWO_ACCOUNTS = {
     data: [
