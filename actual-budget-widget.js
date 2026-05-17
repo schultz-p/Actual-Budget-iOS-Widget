@@ -285,7 +285,7 @@ if (budgetFromCache) {
   addFooterLine(`⚠️ ${reason} — balances from cache (${cacheTime})`)
 }
 if (txFailed) addFooterLine(`⚠️ Uncategorised data unavailable${networkOffline ? " (offline)" : ""}`)
-if (txPartialFail) addFooterLine(`⚠️ Uncategorised data incomplete`)
+if (txPartialFail) addFooterLine(`⚠️ Uncategorised data may be incomplete`)
 if (!budgetFromCache && !txFailed) addFooterLine(`Last retrieved: ${timeFormatter.string(lastSuccessTime)}`)
 
 // === 🔁 Auto-refresh

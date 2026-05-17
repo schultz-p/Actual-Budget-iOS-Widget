@@ -188,3 +188,32 @@ describe('main() — accounts list fetch failure', () => {
     expect(global.Script.complete).toHaveBeenCalled()
   })
 })
+
+describe('main() — partial transaction fetch failure', () => {
+  const TWO_ACCOUNTS = {
+    data: [
+      { id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', name: 'Checking', closed: false, offbudget: false },
+      { id: 'b2c3d4e5-f6a7-8901-bcde-f12345678901', name: 'Savings',  closed: false, offbudget: false },
+    ],
+  }
+
+  test('shows "may be incomplete" footer when only some account transaction fetches fail', async () => {
+    let txCallCount = 0
+    global.Request = jest.fn().mockImplementation((url) => {
+      const mock = { headers: {}, loadJSON: jest.fn() }
+      if (url.includes('categorygroups')) {
+        mock.loadJSON.mockResolvedValue(GROUPS_WITH_TARGET)
+      } else if (url.includes('/transactions')) {
+        txCallCount++
+        if (txCallCount === 1) mock.loadJSON.mockResolvedValue(NO_UNCATEGORISED_TRANSACTIONS)
+        else mock.loadJSON.mockRejectedValue(new Error('tx fetch failed'))
+      } else if (url.includes('/accounts')) {
+        mock.loadJSON.mockResolvedValue(TWO_ACCOUNTS)
+      }
+      return mock
+    })
+    await main()
+    expect(allTexts(widget).some((t) => t.includes('may be incomplete'))).toBe(true)
+    expect(global.Script.complete).toHaveBeenCalled()
+  })
+})
