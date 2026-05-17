@@ -16,16 +16,14 @@ jobs:
         with:
           node-version: "24"
 
+      - name: Install dependencies
+        run: npm ci
+
       - name: Check syntax
         run: node --check actual-budget-widget.js
 
       - name: Lint with ESLint
-        run: |
-          npm install --no-save eslint
-          npx eslint actual-budget-widget.js
-
-      - name: Install dependencies
-        run: npm ci
+        run: npx eslint actual-budget-widget.js
 
       - name: Run tests
         run: npm test
