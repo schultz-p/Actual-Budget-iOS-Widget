@@ -119,7 +119,7 @@ try {
   console.error("❌ API fetch failed:", e)
   if (cache) {
     data = cache.data
-    lastSuccessTime = new Date(cache.timestamp || Date.now())
+    lastSuccessTime = cache.timestamp ? new Date(cache.timestamp) : null
     budgetFromCache = true
   } else {
     w.addText("❌ No data & no cache available.")
@@ -254,7 +254,7 @@ function addFooterLine(text) {
   t.textColor = footerTextColor
 }
 
-if (budgetFromCache) addFooterLine(`⚠️ Balances from cache • Last retrieved: ${timeFormatter.string(lastSuccessTime)}`)
+if (budgetFromCache) addFooterLine(`⚠️ Balances from cache • Last retrieved: ${lastSuccessTime ? timeFormatter.string(lastSuccessTime) : "unknown"}`)
 if (txFailed) addFooterLine(`⚠️ Uncategorised data unavailable`)
 if (!budgetFromCache && !txFailed) addFooterLine(`Last retrieved: ${timeFormatter.string(lastSuccessTime)}`)
 
