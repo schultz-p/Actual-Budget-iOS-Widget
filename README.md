@@ -4,9 +4,9 @@ This is a custom iOS widget for [Actual Budget](https://actualbudget.org), built
 
 ## 📷 Widget Preview
 
-![Actual Budget Widget Preview](./assets/widget-preview.png)
+![Actual Budget Widget Preview](./assets/widget-preview.jpg)
 
-![Actual Budget Widget Config](./assets/widget-config.png)
+![Actual Budget Widget Config](./assets/widget-config.jpg)
 
 ## 🧰 Features
 
