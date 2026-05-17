@@ -44,7 +44,9 @@ const uncategorisedFontSize = 12            // Font size for uncategorised summa
 
 const enableDebugLogging = false            // Log fetch/debug info to console
 const refreshIntervalMinutes = 360          // How often the widget refreshes on success
-const retryIntervalMinutes = 30             // How often to retry after any failure
+const retryIntervalMinutes = 30             // How often to retry after a server/API failure
+const offlineRetryIntervalMinutes = 120    // Longer backoff when the device has no connectivity
+const requestTimeoutSeconds = 15           // Per-request timeout; avoids 60s iOS default hang
 
 // === 🔧 Helper: Format Amount
 function formatAmount(amount) {
@@ -64,7 +66,17 @@ function assertDataArray(response, label) {
 function makeApiRequest(path) {
   const r = new Request(`${apiBaseUrl}${path}`)
   r.headers = { "x-api-key": apiKey, "accept": "application/json" }
+  r.timeoutInterval = requestTimeoutSeconds
   return r
+}
+
+// === 🔧 Helper: Detect connectivity failures vs server errors
+// If the request received any HTTP status code the network path worked — it's a server problem.
+// Only fall back to message heuristics when there's no response at all (never reached the server).
+function isOfflineError(err, req) {
+  if (req && req.response && req.response.statusCode) return false
+  const msg = (err && (err.message || String(err))).toLowerCase()
+  return msg.includes("offline") || msg.includes("network connection was lost") || msg.includes("could not connect to the server")
 }
 
 // === 📆 Helper: ISO date N days before a given date
@@ -98,6 +110,7 @@ let cache = null
 let data, lastSuccessTime
 let budgetFromCache = false
 let txFailed = false
+let networkOffline = false
 
 if (Keychain.contains("actual-cache")) {
   try {
@@ -117,9 +130,10 @@ try {
   lastSuccessTime = now
 } catch (e) {
   console.error("❌ API fetch failed:", e)
+  if (isOfflineError(e, req)) networkOffline = true
   if (cache) {
     data = cache.data
-    lastSuccessTime = new Date(cache.timestamp || Date.now())
+    lastSuccessTime = cache.timestamp ? new Date(cache.timestamp) : null
     budgetFromCache = true
   } else {
     w.addText("❌ No data & no cache available.")
@@ -133,6 +147,7 @@ try {
 const accountsReq = makeApiRequest(`/v1/budgets/${syncId}/accounts`)
 
 let uncategorised = []
+let txPartialFail = false
 
 try {
   const accountData = await accountsReq.loadJSON()
@@ -149,10 +164,11 @@ try {
       console.warn(`⚠️ Skipping account '${acc.name}': unexpected id format '${acc.id}'`)
       return { ok: false }
     }
+    const txReq = makeApiRequest(
+      `/v1/budgets/${syncId}/accounts/${acc.id}/transactions?since_date=${sinceDate}`
+    )
     try {
-      const txData = await makeApiRequest(
-        `/v1/budgets/${syncId}/accounts/${acc.id}/transactions?since_date=${sinceDate}`
-      ).loadJSON()
+      const txData = await txReq.loadJSON()
       assertDataArray(txData, `transactions for '${acc.name}'`)
       const uncats = txData.data.filter(tx =>
         !tx.category &&
@@ -169,26 +185,33 @@ try {
     } catch (err) {
       console.warn(`❌ Failed to fetch transactions for '${acc.name}' (${acc.id})`)
       console.warn(err.message || err)
-      return { ok: false }
+      return { ok: isOfflineError(err, txReq) ? "offline" : false }
     }
   }))
 
+  const successCount = results.filter(r => r.ok === true).length
   for (const result of results) {
-    if (result.ok) {
-      uncategorised.push(...result.uncats)
-    } else {
-      txFailed = true
-    }
+    if (result.ok === true) uncategorised.push(...result.uncats)
+    if (result.ok === "offline") networkOffline = true
+  }
+  // Only treat as a full failure (triggering short retry) when no accounts succeeded.
+  // Partial failures get a warning in the footer but don't shorten the refresh interval.
+  if (successCount === 0 && results.length > 0) {
+    txFailed = true
+  } else if (successCount < results.length) {
+    txPartialFail = true
   }
 
 } catch (err) {
   console.error("❌ Failed to fetch account list")
   console.error(err.message || err)
+  if (isOfflineError(err, accountsReq)) networkOffline = true
   txFailed = true
 }
 
 if (enableDebugLogging) {
-  console.log(`📦 Uncategorised count: ${uncategorised.length}${txFailed ? " (partial — some accounts failed)" : ""}`)
+  const suffix = txFailed ? " (all accounts failed)" : txPartialFail ? " (partial — some accounts failed)" : ""
+  console.log(`📦 Uncategorised count: ${uncategorised.length}${suffix}`)
 }
 
 // === 📂 Display category group
@@ -254,12 +277,15 @@ function addFooterLine(text) {
   t.textColor = footerTextColor
 }
 
-if (budgetFromCache) addFooterLine(`⚠️ Balances from cache • Last retrieved: ${timeFormatter.string(lastSuccessTime)}`)
+if (budgetFromCache) addFooterLine(`⚠️ Balances from cache • Last retrieved: ${lastSuccessTime ? timeFormatter.string(lastSuccessTime) : "unknown"}`)
 if (txFailed) addFooterLine(`⚠️ Uncategorised data unavailable`)
+if (txPartialFail) addFooterLine(`⚠️ Uncategorised data incomplete`)
 if (!budgetFromCache && !txFailed) addFooterLine(`Last retrieved: ${timeFormatter.string(lastSuccessTime)}`)
 
 // === 🔁 Auto-refresh
-const refreshInterval = (budgetFromCache || txFailed) ? retryIntervalMinutes : refreshIntervalMinutes
+const refreshInterval = (budgetFromCache || txFailed)
+  ? (networkOffline ? offlineRetryIntervalMinutes : retryIntervalMinutes)
+  : refreshIntervalMinutes
 const nextRefresh = new Date(Date.now() + refreshInterval * 60 * 1000)
 w.refreshAfterDate = nextRefresh
 
