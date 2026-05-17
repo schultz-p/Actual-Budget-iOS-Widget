@@ -284,7 +284,7 @@ if (budgetFromCache) {
   const reason = networkOffline ? "Device offline" : "Server unreachable"
   addFooterLine(`⚠️ ${reason} — balances from cache (${cacheTime})`)
 }
-if (txFailed) addFooterLine(`⚠️ Uncategorised data unavailable`)
+if (txFailed) addFooterLine(`⚠️ Uncategorised data unavailable${networkOffline ? " (offline)" : ""}`)
 if (txPartialFail) addFooterLine(`⚠️ Uncategorised data incomplete`)
 if (!budgetFromCache && !txFailed) addFooterLine(`Last retrieved: ${timeFormatter.string(lastSuccessTime)}`)
 

@@ -172,6 +172,12 @@ describe('main() — transaction fetch failure', () => {
     expect(allTexts(widget).some((t) => t.includes('Uncategorised data unavailable'))).toBe(true)
     expect(global.Script.complete).toHaveBeenCalled()
   })
+
+  test('appends "(offline)" to the txFailed footer when the failure looks like a connectivity issue', async () => {
+    global.Request = makeRequestMock({ transactionsRes: new Error('network connection was lost') })
+    await main()
+    expect(allTexts(widget).some((t) => t.includes('Uncategorised data unavailable (offline)'))).toBe(true)
+  })
 })
 
 describe('main() — accounts list fetch failure', () => {
