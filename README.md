@@ -25,27 +25,34 @@ This is a custom iOS widget for [Actual Budget](https://actualbudget.org), built
 
 ## 🚀 Setup
 
+The widget uses two Scriptable scripts: one for your personal config (credentials, appearance) and one for the widget logic. Keeping them separate means your API key and sync ID never have to live in the same file you share or version-control.
+
 1. **Install Scriptable** from the App Store on your iPhone.
 
-2. **Open Scriptable → create a new script**, and paste in the contents of [`actual-budget-widget.js`](./actual-budget-widget.js).
-
-3. At the top of the script, edit the following config values:
+2. **Create the config script:**
+   - Open Scriptable → tap **+** → name the script exactly `actual-budget-config`
+   - Paste in the contents of [`actual-budget-config.example.js`](./actual-budget-config.example.js)
+   - Fill in your real values:
 
 ```js
-const syncId = "YOUR_SYNC_ID"
-const apiKey = "YOUR_API_KEY"
-const apiBaseUrl = "https://your-actual-api.example.com"
-const targetGroupName = "Category Group Title"
+const syncId = “YOUR_SYNC_ID”
+const apiKey = “YOUR_API_KEY”
+const apiBaseUrl = “https://your-actual-api.example.com”
+const targetGroupName = “Category Group Title”
 ```
 
-4.	**Optional: Customize appearance** (currency, fonts, colors, spacing).
+3. **Optional: Customize appearance** in `actual-budget-config` (currency, fonts, colors, spacing).
 
-5.	**Run the script once** in the Scriptable app to confirm it works. It should show a list of categories and their balances.
-	
-6.	**Add a Scriptable widget to your home screen:**
-	•	Long press on the home screen → tap “+” → search for “Scriptable”
-	•	Add a Medium or Large widget
-	•	Tap the widget → choose your script
+4. **Create the widget script:**
+   - Tap **+** again → name it `actual-budget-widget`
+   - Paste in the contents of [`actual-budget-widget.js`](./actual-budget-widget.js)
+
+5. **Run `actual-budget-widget` once** in the Scriptable app to confirm it works. It should show a list of categories and their balances.
+
+6. **Add a Scriptable widget to your home screen:**
+   - Long press on the home screen → tap “+” → search for “Scriptable”
+   - Add a Medium or Large widget
+   - Tap the widget → choose the `actual-budget-widget` script
 
 ## 💾 Offline Support
 - The script automatically stores the most recent successful API response in Scriptable’s secure keychain.
