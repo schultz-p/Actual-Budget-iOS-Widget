@@ -50,7 +50,7 @@ const requestTimeoutSeconds = 15           // Per-request timeout; avoids 60s iO
 // Sent as the User-Agent on every request. Add this string to your Cloudflare WAF allowlist
 // to prevent UA-based filtering rules from blocking the widget. If your WAF expects a
 // specific value, change this to match.
-const userAgent = "actual-budget-ios-widget/1.0"
+const userAgent = "actual-budget-ios-widget/1.0 (Scriptable; iOS)"
 
 // === 🔧 Helper: Format Amount
 function formatAmount(amount) {

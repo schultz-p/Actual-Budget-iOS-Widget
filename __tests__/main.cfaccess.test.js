@@ -131,7 +131,7 @@ describe('User-Agent header', () => {
 
     expect(capturedRequests.length).toBeGreaterThan(0)
     for (const req of capturedRequests) {
-      expect(req.headers['User-Agent']).toBe('actual-budget-ios-widget/1.0')
+      expect(req.headers['User-Agent']).toBe('actual-budget-ios-widget/1.0 (Scriptable; iOS)')
     }
   })
 
@@ -145,7 +145,7 @@ describe('User-Agent header', () => {
 
     expect(capturedRequests.length).toBeGreaterThan(0)
     for (const req of capturedRequests) {
-      expect(req.headers['User-Agent']).toBe('actual-budget-ios-widget/1.0')
+      expect(req.headers['User-Agent']).toBe('actual-budget-ios-widget/1.0 (Scriptable; iOS)')
       expect(req.headers['CF-Access-Client-Id']).toBe('test-cf-id')
     }
   })
