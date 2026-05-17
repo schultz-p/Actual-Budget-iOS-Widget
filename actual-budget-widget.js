@@ -44,7 +44,8 @@ const uncategorisedFontSize = 12            // Font size for uncategorised summa
 
 const enableDebugLogging = false            // Log fetch/debug info to console
 const refreshIntervalMinutes = 360          // How often the widget refreshes on success
-const retryIntervalMinutes = 30             // How often to retry after any failure
+const retryIntervalMinutes = 30             // How often to retry after a server/API failure
+const offlineRetryIntervalMinutes = 120    // Longer backoff when the device has no connectivity
 const requestTimeoutSeconds = 15           // Per-request timeout; avoids 60s iOS default hang
 
 // === 🔧 Helper: Format Amount
@@ -67,6 +68,12 @@ function makeApiRequest(path) {
   r.headers = { "x-api-key": apiKey, "accept": "application/json" }
   r.timeoutInterval = requestTimeoutSeconds
   return r
+}
+
+// === 🔧 Helper: Detect iOS offline errors by message heuristic
+function isOfflineError(err) {
+  const msg = (err && (err.message || String(err))).toLowerCase()
+  return msg.includes("offline") || msg.includes("network connection was lost") || msg.includes("could not connect to the server")
 }
 
 // === 📆 Helper: ISO date N days before a given date
@@ -100,6 +107,7 @@ let cache = null
 let data, lastSuccessTime
 let budgetFromCache = false
 let txFailed = false
+let networkOffline = false
 
 if (Keychain.contains("actual-cache")) {
   try {
@@ -119,6 +127,7 @@ try {
   lastSuccessTime = now
 } catch (e) {
   console.error("❌ API fetch failed:", e)
+  if (isOfflineError(e)) networkOffline = true
   if (cache) {
     data = cache.data
     lastSuccessTime = cache.timestamp ? new Date(cache.timestamp) : null
@@ -193,6 +202,7 @@ try {
 } catch (err) {
   console.error("❌ Failed to fetch account list")
   console.error(err.message || err)
+  if (isOfflineError(err)) networkOffline = true
   txFailed = true
 }
 
@@ -270,7 +280,9 @@ if (txPartialFail) addFooterLine(`⚠️ Uncategorised data incomplete`)
 if (!budgetFromCache && !txFailed) addFooterLine(`Last retrieved: ${timeFormatter.string(lastSuccessTime)}`)
 
 // === 🔁 Auto-refresh
-const refreshInterval = (budgetFromCache || txFailed) ? retryIntervalMinutes : refreshIntervalMinutes
+const refreshInterval = (budgetFromCache || txFailed)
+  ? (networkOffline ? offlineRetryIntervalMinutes : retryIntervalMinutes)
+  : refreshIntervalMinutes
 const nextRefresh = new Date(Date.now() + refreshInterval * 60 * 1000)
 w.refreshAfterDate = nextRefresh
 
