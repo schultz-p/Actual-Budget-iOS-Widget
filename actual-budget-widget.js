@@ -279,7 +279,11 @@ function addFooterLine(text) {
   t.textColor = footerTextColor
 }
 
-if (budgetFromCache) addFooterLine(`⚠️ Balances from cache • Last retrieved: ${lastSuccessTime ? timeFormatter.string(lastSuccessTime) : "unknown"}`)
+if (budgetFromCache) {
+  const cacheTime = lastSuccessTime ? timeFormatter.string(lastSuccessTime) : "unknown"
+  const reason = networkOffline ? "Device offline" : "Server unreachable"
+  addFooterLine(`⚠️ ${reason} — balances from cache (${cacheTime})`)
+}
 if (txFailed) addFooterLine(`⚠️ Uncategorised data unavailable`)
 if (txPartialFail) addFooterLine(`⚠️ Uncategorised data incomplete`)
 if (!budgetFromCache && !txFailed) addFooterLine(`Last retrieved: ${timeFormatter.string(lastSuccessTime)}`)

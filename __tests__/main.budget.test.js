@@ -135,6 +135,21 @@ describe('main() — cache fallback', () => {
     await main()
     expect(global.Keychain.set).not.toHaveBeenCalled()
   })
+
+  test('labels the cache footer as "Device offline" when the error is a connectivity failure', async () => {
+    // default beforeEach throws new Error('offline') → networkOffline = true
+    await main()
+    expect(allTexts(widget).some((t) => t.includes('Device offline'))).toBe(true)
+  })
+
+  test('labels the cache footer as "Server unreachable" when the server returned an error', async () => {
+    global.Request = jest.fn().mockImplementation((url) => ({
+      url, headers: {},
+      loadJSON: jest.fn().mockRejectedValue(new Error('500 Internal Server Error')),
+    }))
+    await main()
+    expect(allTexts(widget).some((t) => t.includes('Server unreachable'))).toBe(true)
+  })
 })
 
 describe('main() — no data and no cache', () => {
