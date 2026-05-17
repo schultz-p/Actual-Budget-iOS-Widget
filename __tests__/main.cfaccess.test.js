@@ -123,3 +123,30 @@ describe('Cloudflare Access headers — absent when not configured', () => {
     }
   })
 })
+
+describe('User-Agent header', () => {
+  test('is set on every request', async () => {
+    const capturedRequests = []
+    await runMainWithConfig({ ...baseConfig }, capturedRequests)
+
+    expect(capturedRequests.length).toBeGreaterThan(0)
+    for (const req of capturedRequests) {
+      expect(req.headers['User-Agent']).toBe('actual-budget-ios-widget/1.0')
+    }
+  })
+
+  test('is present alongside CF-Access headers when both are configured', async () => {
+    const capturedRequests = []
+    await runMainWithConfig({
+      ...baseConfig,
+      cfAccessClientId: 'test-cf-id',
+      cfAccessClientSecret: 'test-cf-secret',
+    }, capturedRequests)
+
+    expect(capturedRequests.length).toBeGreaterThan(0)
+    for (const req of capturedRequests) {
+      expect(req.headers['User-Agent']).toBe('actual-budget-ios-widget/1.0')
+      expect(req.headers['CF-Access-Client-Id']).toBe('test-cf-id')
+    }
+  })
+})
