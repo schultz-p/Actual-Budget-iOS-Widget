@@ -160,7 +160,7 @@ describe('main() — UUID validation', () => {
     global.Request = makeRequestMock({ accountsRes: ACCOUNT_INVALID_UUID })
     await main()
     // Invalid UUID → ok: false → txFailed footer shown
-    expect(allTexts(widget).some((t) => t.includes('Uncategorised data unavailable'))).toBe(true)
+    expect(allTexts(widget).some((t) => t.includes('Transactions unavailable'))).toBe(true)
     expect(global.Script.complete).toHaveBeenCalled()
   })
 })
@@ -169,14 +169,14 @@ describe('main() — transaction fetch failure', () => {
   test('shows the txFailed footer when a per-account transaction request throws', async () => {
     global.Request = makeRequestMock({ transactionsRes: new Error('tx fetch failed') })
     await main()
-    expect(allTexts(widget).some((t) => t.includes('Uncategorised data unavailable'))).toBe(true)
+    expect(allTexts(widget).some((t) => t.includes('Transactions unavailable'))).toBe(true)
     expect(global.Script.complete).toHaveBeenCalled()
   })
 
   test('appends "(offline)" to the txFailed footer when the failure looks like a connectivity issue', async () => {
     global.Request = makeRequestMock({ transactionsRes: new Error('network connection was lost') })
     await main()
-    expect(allTexts(widget).some((t) => t.includes('Uncategorised data unavailable (offline)'))).toBe(true)
+    expect(allTexts(widget).some((t) => t.includes('Transactions unavailable (offline)'))).toBe(true)
   })
 })
 
@@ -184,7 +184,7 @@ describe('main() — accounts list fetch failure', () => {
   test('shows the txFailed footer when the accounts request itself throws', async () => {
     global.Request = makeRequestMock({ accountsRes: new Error('accounts unavailable') })
     await main()
-    expect(allTexts(widget).some((t) => t.includes('Uncategorised data unavailable'))).toBe(true)
+    expect(allTexts(widget).some((t) => t.includes('Transactions unavailable'))).toBe(true)
     expect(global.Script.complete).toHaveBeenCalled()
   })
 })
@@ -197,7 +197,7 @@ describe('main() — partial transaction fetch failure', () => {
     ],
   }
 
-  test('shows "may be incomplete" footer when only some account transaction fetches fail', async () => {
+  test('shows "may be understated" footer when only some account transaction fetches fail', async () => {
     let txCallCount = 0
     global.Request = jest.fn().mockImplementation((url) => {
       const mock = { headers: {}, loadJSON: jest.fn() }
@@ -213,7 +213,7 @@ describe('main() — partial transaction fetch failure', () => {
       return mock
     })
     await main()
-    expect(allTexts(widget).some((t) => t.includes('may be incomplete'))).toBe(true)
+    expect(allTexts(widget).some((t) => t.includes('may be understated'))).toBe(true)
     expect(global.Script.complete).toHaveBeenCalled()
   })
 })
