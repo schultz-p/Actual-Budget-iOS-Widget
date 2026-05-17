@@ -133,6 +133,7 @@ try {
 const accountsReq = makeApiRequest(`/v1/budgets/${syncId}/accounts`)
 
 let uncategorised = []
+let txPartialFail = false
 
 try {
   const accountData = await accountsReq.loadJSON()
@@ -173,12 +174,18 @@ try {
     }
   }))
 
+  const successCount = results.filter(r => r.ok).length
   for (const result of results) {
     if (result.ok) {
       uncategorised.push(...result.uncats)
-    } else {
-      txFailed = true
     }
+  }
+  // Only treat as a full failure (triggering short retry) when no accounts succeeded.
+  // Partial failures get a warning in the footer but don't shorten the refresh interval.
+  if (successCount === 0 && results.length > 0) {
+    txFailed = true
+  } else if (successCount < results.length) {
+    txPartialFail = true
   }
 
 } catch (err) {
@@ -188,7 +195,8 @@ try {
 }
 
 if (enableDebugLogging) {
-  console.log(`📦 Uncategorised count: ${uncategorised.length}${txFailed ? " (partial — some accounts failed)" : ""}`)
+  const suffix = txFailed ? " (all accounts failed)" : txPartialFail ? " (partial — some accounts failed)" : ""
+  console.log(`📦 Uncategorised count: ${uncategorised.length}${suffix}`)
 }
 
 // === 📂 Display category group
@@ -256,6 +264,7 @@ function addFooterLine(text) {
 
 if (budgetFromCache) addFooterLine(`⚠️ Balances from cache • Last retrieved: ${lastSuccessTime ? timeFormatter.string(lastSuccessTime) : "unknown"}`)
 if (txFailed) addFooterLine(`⚠️ Uncategorised data unavailable`)
+if (txPartialFail) addFooterLine(`⚠️ Uncategorised data incomplete`)
 if (!budgetFromCache && !txFailed) addFooterLine(`Last retrieved: ${timeFormatter.string(lastSuccessTime)}`)
 
 // === 🔁 Auto-refresh
