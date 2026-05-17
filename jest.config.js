@@ -1,5 +1,6 @@
 module.exports = {
   testEnvironment: 'node',
-  setupFiles: ['./test/scriptable-globals.js'],
-  setupFilesAfterEnv: ['./test/scriptable-mocks.js'],
+  setupFiles: ['./__tests__/setup/scriptable-globals.js'],
+  setupFilesAfterEnv: ['./__tests__/setup/scriptable-mocks.js'],
+  testPathIgnorePatterns: ['/node_modules/', '/__tests__/setup/'],
 }

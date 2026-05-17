@@ -1,5 +1,5 @@
 const { main } = require('../actual-budget-widget')
-const { makeTextEl, makeStack, allTexts } = require('../test/helpers')
+const { makeTextEl, makeStack, allTexts } = require('./setup/helpers')
 
 // --- Fixtures ---
 
