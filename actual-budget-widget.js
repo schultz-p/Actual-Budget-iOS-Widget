@@ -288,8 +288,8 @@ if (budgetFromCache) {
   const reason = networkOffline ? "Device offline" : "Server unreachable"
   addFooterLine(`⚠️ ${reason} — balances from cache (${cacheTime})`)
 }
-if (txFailed) addFooterLine(`⚠️ Transactions unavailable${networkOffline ? " (offline)" : ""} — uncategorised count not shown`)
-if (txPartialFail) addFooterLine(`⚠️ Some transactions unavailable — uncategorised count may be understated`)
+if (txFailed) addFooterLine(`⚠️ Transactions unavailable${networkOffline ? " (offline)" : ""}`)
+if (txPartialFail) addFooterLine(`⚠️ Some transactions unavailable`)
 if (!budgetFromCache && !txFailed) addFooterLine(`Last retrieved: ${timeFormatter.string(lastSuccessTime)}`)
 
 // === 🔁 Auto-refresh

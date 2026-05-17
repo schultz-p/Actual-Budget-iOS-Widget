@@ -197,7 +197,7 @@ describe('main() — partial transaction fetch failure', () => {
     ],
   }
 
-  test('shows "may be understated" footer when only some account transaction fetches fail', async () => {
+  test('shows "Some transactions unavailable" footer when only some account transaction fetches fail', async () => {
     let txCallCount = 0
     global.Request = jest.fn().mockImplementation((url) => {
       const mock = { headers: {}, loadJSON: jest.fn() }
@@ -213,7 +213,7 @@ describe('main() — partial transaction fetch failure', () => {
       return mock
     })
     await main()
-    expect(allTexts(widget).some((t) => t.includes('may be understated'))).toBe(true)
+    expect(allTexts(widget).some((t) => t.includes('Some transactions unavailable'))).toBe(true)
     expect(global.Script.complete).toHaveBeenCalled()
   })
 })
