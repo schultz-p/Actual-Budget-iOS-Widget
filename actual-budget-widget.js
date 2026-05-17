@@ -102,7 +102,7 @@ let txFailed = false
 if (Keychain.contains("actual-cache")) {
   try {
     cache = JSON.parse(Keychain.get("actual-cache"))
-  } catch (e) {
+  } catch {
     console.warn("⚠️ Cache could not be parsed")
   }
 }
